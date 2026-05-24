@@ -4,12 +4,19 @@ $ErrorActionPreference = 'SilentlyContinue'
 $ToolsDir = "$env:USERPROFILE\Tools\asdbctl"
 $BinDir   = "$ToolsDir\target\release"
 
-Write-Host "Stopping AHK daemon..."
-Get-Process -Name 'AutoHotkey*' | Stop-Process -Force
+Write-Host "Stopping tray daemon..."
+Get-Process -Name 'AutoHotkey64' | Stop-Process -Force
 
 Write-Host "Removing shortcuts..."
-Remove-Item "$([Environment]::GetFolderPath('Desktop'))\ASD Brightness.lnk" -Force
-Remove-Item "$([Environment]::GetFolderPath('Startup'))\ASD Brightness Hotkeys.lnk" -Force
+$desktop = [Environment]::GetFolderPath('Desktop')
+$startup = [Environment]::GetFolderPath('Startup')
+foreach ($p in @(
+    "$desktop\ASD Brightness.lnk",
+    "$startup\ASD Brightness Tray.lnk",
+    "$startup\ASD Brightness Hotkeys.lnk"
+)) {
+    if (Test-Path $p) { Remove-Item $p -Force; Write-Host "  removed $p" }
+}
 
 Write-Host "Removing $ToolsDir..."
 Remove-Item -Recurse -Force $ToolsDir

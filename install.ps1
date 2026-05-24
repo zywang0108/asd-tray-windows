@@ -59,7 +59,7 @@ Push-Location $ToolsDir
 if ($LASTEXITCODE -ne 0) { Pop-Location; throw 'cargo build failed' }
 Pop-Location
 
-$BinDir = "$ToolsDir\target\release"
+$BinDir  = "$ToolsDir\target\release"
 $Asdbctl = "$BinDir\asdbctl.exe"
 if (-not (Test-Path $Asdbctl)) { throw "Build did not produce $Asdbctl" }
 
@@ -69,38 +69,42 @@ if ($userPath -notlike "*$BinDir*") {
     [Environment]::SetEnvironmentVariable('Path', "$userPath;$BinDir", 'User')
 }
 
-Step 'Copy UI + hotkey scripts'
-Copy-Item "$ScriptDir\brightness-ui.ps1"      "$ToolsDir\" -Force
-Copy-Item "$ScriptDir\brightness-hotkeys.ahk" "$ToolsDir\" -Force
+Step 'Copy brightness.ahk daemon'
+Copy-Item "$ScriptDir\brightness.ahk" "$ToolsDir\" -Force
 
-Step 'Create desktop shortcut for UI'
-$shell = New-Object -ComObject WScript.Shell
+# Clean up files from previous (pre-unified) install if present
+foreach ($old in 'brightness-ui.ps1', 'brightness-ui.bat', 'brightness-hotkeys.ahk') {
+    $p = "$ToolsDir\$old"
+    if (Test-Path $p) { Remove-Item $p -Force }
+}
 $desktop = [Environment]::GetFolderPath('Desktop')
-$uiLnk = $shell.CreateShortcut("$desktop\ASD Brightness.lnk")
-$uiLnk.TargetPath = 'powershell.exe'
-$uiLnk.Arguments  = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$ToolsDir\brightness-ui.ps1`""
-$uiLnk.WorkingDirectory = $ToolsDir
-$uiLnk.IconLocation = 'C:\Windows\System32\imageres.dll,109'
-$uiLnk.Save()
+if (Test-Path "$desktop\ASD Brightness.lnk") { Remove-Item "$desktop\ASD Brightness.lnk" -Force }
 
-Step 'Register hotkey daemon for autostart'
+Step 'Register tray daemon for autostart'
 $ahkExe = "$env:LOCALAPPDATA\Programs\AutoHotkey\v2\AutoHotkey64.exe"
 if (-not (Test-Path $ahkExe)) { throw "AHK exe not found at $ahkExe" }
 $startup = [Environment]::GetFolderPath('Startup')
-$hkLnk = $shell.CreateShortcut("$startup\ASD Brightness Hotkeys.lnk")
-$hkLnk.TargetPath = $ahkExe
-$hkLnk.Arguments  = "`"$ToolsDir\brightness-hotkeys.ahk`""
-$hkLnk.WorkingDirectory = $ToolsDir
-$hkLnk.Save()
+foreach ($oldLnk in 'ASD Brightness Hotkeys.lnk') {
+    if (Test-Path "$startup\$oldLnk") { Remove-Item "$startup\$oldLnk" -Force }
+}
+$shell = New-Object -ComObject WScript.Shell
+$lnk = $shell.CreateShortcut("$startup\ASD Brightness Tray.lnk")
+$lnk.TargetPath = $ahkExe
+$lnk.Arguments  = "`"$ToolsDir\brightness.ahk`""
+$lnk.WorkingDirectory = $ToolsDir
+$lnk.Save()
 
-Step 'Launch hotkey daemon now'
-Get-Process -Name 'AutoHotkey*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-Start-Process -FilePath $ahkExe -ArgumentList "`"$ToolsDir\brightness-hotkeys.ahk`""
+Step 'Launch tray daemon now'
+Get-Process -Name 'AutoHotkey64' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Process -FilePath $ahkExe -ArgumentList "`"$ToolsDir\brightness.ahk`""
 
 Step 'Done'
 Write-Host ""
+Write-Host "Look for the brightness tray icon in the system tray (bottom-right corner)." -ForegroundColor Green
+Write-Host ""
 Write-Host "Try it:" -ForegroundColor Green
-Write-Host "  Ctrl+Alt+Up / Ctrl+Alt+Down  - brightness +-5%"
-Write-Host "  Ctrl+Alt+B                   - open slider UI"
-Write-Host "  Desktop shortcut 'ASD Brightness' - same UI"
-Write-Host "  asdbctl get / asdbctl set 70 - CLI"
+Write-Host "  Single-click the tray icon       - slider popup"
+Write-Host "  Right-click the tray icon        - quick presets 0/25/50/75/100"
+Write-Host "  Ctrl+Alt+Up / Ctrl+Alt+Down      - brightness +-5% with OSD"
+Write-Host "  Ctrl+Alt+B                       - open slider popup"
+Write-Host "  asdbctl get / asdbctl set 70     - CLI (open a new shell first)"
