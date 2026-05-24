@@ -23,13 +23,13 @@ The fix is trivial: `juliuszint/asdbctl` upstream already added `0x1118` to its 
 Run in PowerShell (no admin needed for most steps; the script will prompt UAC twice for Build Tools and the WinTun-equivalent steps if absent):
 
 ```powershell
-irm https://raw.githubusercontent.com/<YOUR_GITHUB>/asd-tray-windows/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/zywang0108/asd-tray-windows/main/install.ps1 | iex
 ```
 
 Or clone and run:
 
 ```powershell
-git clone https://github.com/<YOUR_GITHUB>/asd-tray-windows
+git clone https://github.com/zywang0108/asd-tray-windows
 cd asd-tray-windows
 .\install.ps1
 ```
