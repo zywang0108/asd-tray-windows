@@ -1,0 +1,13 @@
+# Build artifacts (asdbctl is built locally by install.ps1)
+target/
+*.exe
+*.lib
+*.pdb
+*.obj
+
+# Editor / OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
