@@ -22,22 +22,27 @@ If you landed here from searching any of: *Twinkle Tray Studio Display not detec
 
 ## Install
 
-Run in PowerShell (no admin, no toolchain, no `winget`):
+Three options, all per-user (no admin), all from the [latest release](https://github.com/zywang0108/asd-tray-windows/releases/latest):
+
+### A. Setup wizard (recommended)
+
+Download `asd-tray-windows-setup-vX.Y.Z.exe`, double-click, click *Install*. Installs to `~\Tools\asdbctl\`, adds to PATH, registers Startup-folder autostart, launches the tray. Uninstall from Settings → Apps like any other Windows app.
+
+### B. PowerShell one-liner (scripted / headless)
 
 ```powershell
 irm https://raw.githubusercontent.com/zywang0108/asd-tray-windows/main/install.ps1 | iex
 ```
 
-The script downloads the latest prebuilt zip from GitHub Releases and:
+Same end state as A, no GUI. Useful for scripted deploys, dotfiles, remote sessions.
 
-1. Extracts `asdbctl.exe` and `brightness.exe` into `~\Tools\asdbctl\`
-2. Adds that directory to your User PATH so `asdbctl` works in any shell
-3. Creates a Startup-folder shortcut so the tray launches at login
-4. Launches the tray immediately
+### C. Portable
 
-Total time: ~10 s. Nothing is compiled on your machine.
+Download `asd-tray-windows-vX.Y.Z.zip`, extract anywhere, double-click `brightness.exe`. No PATH, no autostart, no uninstall entry. Good for trying it on a borrowed machine.
 
-If you'd rather build from source (need to customize the AHK script first, or just don't trust the binary), see [Build from source](#build-from-source) below.
+All three ship the same prebuilt `asdbctl.exe` + `brightness.exe` (~1 MB total, no toolchain compilation on your machine). Install takes ~10 s.
+
+If you'd rather build from source, see [Build from source](#build-from-source) below.
 
 ## Usage
 
