@@ -26,11 +26,18 @@ TRAY_ICON_INDEX := 110
 
 ; --- Shared state ---
 popupVisible := false
-sliderApplyPending := false
+sliderPendingValue := -1
+sliderInFlight := false
+sliderInFlightPid := 0
 
 ; --- Backend ---
 RunSilent(cmd) {
     RunWait(A_ComSpec ' /S /C "' cmd '"', , "Hide")
+}
+
+RunSilentAsync(cmd) {
+    Run(A_ComSpec ' /S /C "' cmd '"', , "Hide", &pid)
+    return pid
 }
 
 RunSilentCapture(cmd) {
@@ -52,6 +59,12 @@ SetBrightness(v) {
     v := Max(0, Min(100, Integer(v)))
     RunSilent(Format('"{1}" set {2}', ASDBCTL, v))
     return v
+}
+
+SetBrightnessAsync(v) {
+    global ASDBCTL
+    v := Max(0, Min(100, Integer(v)))
+    return RunSilentAsync(Format('"{1}" set {2}', ASDBCTL, v))
 }
 
 ; --- OSD: macOS-style centered top overlay ---
@@ -89,19 +102,55 @@ sliderCtrl.OnEvent("Change", OnSliderChange)
 popup.OnEvent("Escape", HidePopupEvent)
 
 OnSliderChange(ctrl, info) {
-    global popupLabel, sliderApplyPending
+    global popupLabel, sliderPendingValue
     popupLabel.Text := Format("Brightness: {1}%", ctrl.Value)
-    if !sliderApplyPending {
-        sliderApplyPending := true
-        SetTimer(ApplySliderValue, -60)
+    sliderPendingValue := ctrl.Value
+    PumpSlider()
+}
+
+PumpSlider() {
+    global sliderInFlight, sliderInFlightPid, sliderPendingValue
+    if sliderInFlight
+        return
+    if (sliderPendingValue < 0)
+        return
+    v := sliderPendingValue
+    sliderPendingValue := -1
+    sliderInFlight := true
+    sliderInFlightPid := SetBrightnessAsync(v)
+    SetTimer(SliderWatchTick, 30)
+}
+
+SliderWatchTick() {
+    global sliderInFlight, sliderInFlightPid
+    if !ProcessExist(sliderInFlightPid) {
+        SetTimer(SliderWatchTick, 0)
+        sliderInFlight := false
+        sliderInFlightPid := 0
+        PumpSlider()
     }
 }
 
-ApplySliderValue() {
-    global sliderCtrl, sliderApplyPending
-    sliderApplyPending := false
-    SetBrightness(sliderCtrl.Value)
+; WM_HSCROLL hook: AHK Slider's "Change" event only fires on thumb release,
+; so we tap into the underlying Win32 trackbar SB_THUMBTRACK notification
+; to get continuous position updates while the user drags.
+OnSliderHScroll(wParam, lParam, msg, hwnd) {
+    global sliderCtrl, popupLabel, popupVisible, sliderPendingValue
+    if !popupVisible
+        return
+    if (lParam != sliderCtrl.Hwnd)
+        return
+    code := wParam & 0xFFFF
+    if (code != 5 && code != 4)  ; SB_THUMBTRACK / SB_THUMBPOSITION
+        return
+    pos := SendMessage(0x400, 0, 0, sliderCtrl)  ; TBM_GETPOS
+    pos := Max(0, Min(100, pos))
+    sliderCtrl.Value := pos
+    popupLabel.Text := Format("Brightness: {1}%", pos)
+    sliderPendingValue := pos
+    PumpSlider()
 }
+OnMessage(0x114, OnSliderHScroll)  ; WM_HSCROLL
 
 POPUP_MARGIN_X := 12
 POPUP_MARGIN_Y := 50
