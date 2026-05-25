@@ -1,11 +1,11 @@
-# Reverse of install.ps1. Keeps Rust/BuildTools/AHK installed.
+# Reverse of install.ps1.
 
 $ErrorActionPreference = 'SilentlyContinue'
-$ToolsDir = "$env:USERPROFILE\Tools\asdbctl"
-$BinDir   = "$ToolsDir\target\release"
+$ToolsDir  = "$env:USERPROFILE\Tools\asdbctl"
+$LegacyBin = "$ToolsDir\target\release"
 
 Write-Host "Stopping tray daemon..."
-Get-Process -Name 'AutoHotkey64' | Stop-Process -Force
+Get-Process -Name 'AutoHotkey64','brightness' | Stop-Process -Force
 
 Write-Host "Removing shortcuts..."
 $desktop = [Environment]::GetFolderPath('Desktop')
@@ -23,7 +23,7 @@ Remove-Item -Recurse -Force $ToolsDir
 
 Write-Host "Reverting PATH..."
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-$newPath = ($userPath -split ';' | Where-Object { $_ -and ($_ -ne $BinDir) }) -join ';'
+$newPath = ($userPath -split ';' | Where-Object { $_ -and ($_ -ne $ToolsDir) -and ($_ -ne $LegacyBin) }) -join ';'
 [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
 
-Write-Host "Done. Rust, VS Build Tools, and AutoHotkey are left installed." -ForegroundColor Green
+Write-Host "Done." -ForegroundColor Green

@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checkout asdbctl source
+        uses: actions/checkout@v4
+        with:
+          repository: juliuszint/asdbctl
+          path: asdbctl-src
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build asdbctl
+        working-directory: asdbctl-src
+        run: cargo build --release
+
+      - name: Download AHK v2 portable
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri 'https://www.autohotkey.com/download/ahk-v2.zip' -OutFile ahk.zip
+          Expand-Archive ahk.zip -DestinationPath ahk -Force
+
+      - name: Compile brightness.ahk to brightness.exe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          $base = (Resolve-Path './ahk/AutoHotkey64.exe').Path
+          $compiler = (Resolve-Path './ahk/Compiler/Ahk2Exe.exe').Path
+          $src = (Resolve-Path './brightness.ahk').Path
+          $out = Join-Path ((Resolve-Path './dist').Path) 'brightness.exe'
+          Start-Process -FilePath $compiler `
+            -ArgumentList @('/in', "`"$src`"", '/out', "`"$out`"", '/base', "`"$base`"") `
+            -Wait -NoNewWindow
+          if (-not (Test-Path $out)) { throw "Ahk2Exe failed to produce $out" }
+
+      - name: Stage release files
+        shell: pwsh
+        run: |
+          Copy-Item asdbctl-src/target/release/asdbctl.exe dist/
+          Copy-Item brightness.ahk dist/
+          Copy-Item README.md dist/
+          Copy-Item LICENSE dist/
+
+      - name: Create zip
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          Compress-Archive -Path dist/* -DestinationPath "asd-tray-windows-$tag.zip" -Force
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: asd-tray-windows-*.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true

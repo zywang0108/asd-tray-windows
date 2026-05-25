@@ -1,102 +1,58 @@
-# asd-tray-windows installer
+# asd-tray-windows installer (prebuilt binary release)
 # Idempotent: safe to re-run.
 
 $ErrorActionPreference = 'Stop'
-$ToolsDir   = "$env:USERPROFILE\Tools\asdbctl"
-$RepoUrl    = 'https://github.com/juliuszint/asdbctl'
-$ScriptDir  = $PSScriptRoot
-if (-not $ScriptDir) { $ScriptDir = (Get-Location).Path }
+$ToolsDir = "$env:USERPROFILE\Tools\asdbctl"
+$Repo     = 'zywang0108/asd-tray-windows'
 
 function Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
-function Have($cmd) { [bool](Get-Command $cmd -ErrorAction SilentlyContinue) }
 
-function EnsureWinget {
-    if (-not (Have winget)) {
-        throw "winget not found. Install 'App Installer' from Microsoft Store and re-run."
-    }
-}
+Step 'Look up latest release'
+$rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" `
+                         -Headers @{ 'User-Agent' = 'asd-tray-windows-installer' }
+$asset = $rel.assets | Where-Object { $_.name -like 'asd-tray-windows-*.zip' } | Select-Object -First 1
+if (-not $asset) { throw "No zip asset found in release $($rel.tag_name)" }
+Write-Host "  $($rel.tag_name) -> $($asset.name) ($([math]::Round($asset.size/1KB)) KB)"
 
-function WingetInstall($id, $extra = $null) {
-    $listed = winget list --id $id --exact --disable-interactivity 2>&1 | Out-String
-    if ($listed -match [regex]::Escape($id)) {
-        Write-Host "  already installed: $id"
-        return
-    }
-    $args = @('install', '--id', $id, '--exact', '--source', 'winget',
-              '--disable-interactivity', '--accept-source-agreements', '--accept-package-agreements')
-    if ($extra) { $args += @('--override', $extra) }
-    & winget @args | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "winget install $id failed (exit $LASTEXITCODE)" }
-}
+Step 'Stop running daemon (if any)'
+Get-Process -Name 'AutoHotkey64','brightness' -ErrorAction SilentlyContinue |
+    Stop-Process -Force -ErrorAction SilentlyContinue
 
-Step 'Check winget'
-EnsureWinget
+Step "Download and extract to $ToolsDir"
+New-Item -ItemType Directory -Path $ToolsDir -Force | Out-Null
+$zip = Join-Path $env:TEMP "asd-tray-windows-$([guid]::NewGuid()).zip"
+Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zip -UseBasicParsing
+Expand-Archive -Path $zip -DestinationPath $ToolsDir -Force
+Remove-Item $zip -Force
 
-Step 'Install Rust (rustup)'
-WingetInstall 'Rustlang.Rustup'
-$env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
-if (Have rustup) { & rustup default stable | Out-Null }
-
-Step 'Install VS Build Tools 2022 (C++ workload, ~2GB - may take a while)'
-WingetInstall 'Microsoft.VisualStudio.2022.BuildTools' '--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended'
-
-Step 'Install AutoHotkey v2'
-WingetInstall 'AutoHotkey.AutoHotkey'
-
-Step "Clone/update asdbctl into $ToolsDir"
-if (Test-Path "$ToolsDir\.git") {
-    Push-Location $ToolsDir
-    git pull --ff-only | Out-Null
-    Pop-Location
-} else {
-    New-Item -ItemType Directory -Path (Split-Path $ToolsDir) -Force | Out-Null
-    git clone --depth=1 $RepoUrl $ToolsDir 2>&1 | Out-Null
-}
-
-Step 'Build asdbctl (cargo build --release)'
-Push-Location $ToolsDir
-& "$env:USERPROFILE\.cargo\bin\cargo.exe" build --release
-if ($LASTEXITCODE -ne 0) { Pop-Location; throw 'cargo build failed' }
-Pop-Location
-
-$BinDir  = "$ToolsDir\target\release"
-$Asdbctl = "$BinDir\asdbctl.exe"
-if (-not (Test-Path $Asdbctl)) { throw "Build did not produce $Asdbctl" }
-
-Step "Add $BinDir to User PATH"
+Step 'Add asdbctl to User PATH'
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-if ($userPath -notlike "*$BinDir*") {
-    [Environment]::SetEnvironmentVariable('Path', "$userPath;$BinDir", 'User')
+if ($userPath -notlike "*$ToolsDir*") {
+    [Environment]::SetEnvironmentVariable('Path', "$userPath;$ToolsDir", 'User')
 }
 
-Step 'Copy brightness.ahk daemon'
-Copy-Item "$ScriptDir\brightness.ahk" "$ToolsDir\" -Force
+Step 'Register tray daemon for autostart'
+$startup = [Environment]::GetFolderPath('Startup')
+$shell   = New-Object -ComObject WScript.Shell
+$lnk     = $shell.CreateShortcut("$startup\ASD Brightness Tray.lnk")
+$lnk.TargetPath       = "$ToolsDir\brightness.exe"
+$lnk.WorkingDirectory = $ToolsDir
+$lnk.Save()
 
-# Clean up files from previous (pre-unified) install if present
-foreach ($old in 'brightness-ui.ps1', 'brightness-ui.bat', 'brightness-hotkeys.ahk') {
-    $p = "$ToolsDir\$old"
+# Clean up artifacts from older (source-build) installs
+foreach ($old in 'brightness-ui.ps1','brightness-ui.bat','brightness-hotkeys.ahk','target','.git','Cargo.toml','Cargo.lock','src') {
+    $p = Join-Path $ToolsDir $old
+    if (Test-Path $p) { Remove-Item $p -Recurse -Force -ErrorAction SilentlyContinue }
+}
+foreach ($oldLnk in 'ASD Brightness Hotkeys.lnk') {
+    $p = "$startup\$oldLnk"
     if (Test-Path $p) { Remove-Item $p -Force }
 }
 $desktop = [Environment]::GetFolderPath('Desktop')
 if (Test-Path "$desktop\ASD Brightness.lnk") { Remove-Item "$desktop\ASD Brightness.lnk" -Force }
 
-Step 'Register tray daemon for autostart'
-$ahkExe = "$env:LOCALAPPDATA\Programs\AutoHotkey\v2\AutoHotkey64.exe"
-if (-not (Test-Path $ahkExe)) { throw "AHK exe not found at $ahkExe" }
-$startup = [Environment]::GetFolderPath('Startup')
-foreach ($oldLnk in 'ASD Brightness Hotkeys.lnk') {
-    if (Test-Path "$startup\$oldLnk") { Remove-Item "$startup\$oldLnk" -Force }
-}
-$shell = New-Object -ComObject WScript.Shell
-$lnk = $shell.CreateShortcut("$startup\ASD Brightness Tray.lnk")
-$lnk.TargetPath = $ahkExe
-$lnk.Arguments  = "`"$ToolsDir\brightness.ahk`""
-$lnk.WorkingDirectory = $ToolsDir
-$lnk.Save()
-
 Step 'Launch tray daemon now'
-Get-Process -Name 'AutoHotkey64' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-Start-Process -FilePath $ahkExe -ArgumentList "`"$ToolsDir\brightness.ahk`""
+Start-Process -FilePath "$ToolsDir\brightness.exe"
 
 Step 'Done'
 Write-Host ""

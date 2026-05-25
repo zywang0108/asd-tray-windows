@@ -22,29 +22,22 @@ If you landed here from searching any of: *Twinkle Tray Studio Display not detec
 
 ## Install
 
-Run in PowerShell (no admin needed for daily use; you may get one UAC prompt for VS Build Tools if it's not already installed):
+Run in PowerShell (no admin, no toolchain, no `winget`):
 
 ```powershell
 irm https://raw.githubusercontent.com/zywang0108/asd-tray-windows/main/install.ps1 | iex
 ```
 
-Or clone and run:
+The script downloads the latest prebuilt zip from GitHub Releases and:
 
-```powershell
-git clone https://github.com/zywang0108/asd-tray-windows
-cd asd-tray-windows
-.\install.ps1
-```
+1. Extracts `asdbctl.exe` and `brightness.exe` into `~\Tools\asdbctl\`
+2. Adds that directory to your User PATH so `asdbctl` works in any shell
+3. Creates a Startup-folder shortcut so the tray launches at login
+4. Launches the tray immediately
 
-The script:
-1. Installs Rust, VS Build Tools 2022 (C++ workload), AutoHotkey v2 via `winget` (skips if present)
-2. Clones `juliuszint/asdbctl` and runs `cargo build --release`
-3. Copies the tray daemon (`brightness.ahk`) into `~\Tools\asdbctl\`
-4. Adds the asdbctl directory to your User PATH
-5. Creates a Startup-folder shortcut so the tray daemon launches at login
-6. Launches the daemon immediately
+Total time: ~10 s. Nothing is compiled on your machine.
 
-Total time: ~5 min on a fast connection (most of it is Build Tools download).
+If you'd rather build from source (need to customize the AHK script first, or just don't trust the binary), see [Build from source](#build-from-source) below.
 
 ## Usage
 
@@ -64,15 +57,24 @@ Popup is anchored above the taskbar in the bottom-right, like the Windows audio 
 
 ## Customize
 
-Edit `C:\Users\<You>\Tools\asdbctl\brightness.ahk`:
+The release zip includes the source `brightness.ahk` alongside the compiled `brightness.exe` (which embeds the AHK v2 runtime). Constants worth tweaking in the .ahk file:
 
-- `STEP := 5` — step per hotkey press
-- `OSD_DURATION_MS := 900` — how long the centered OSD stays visible
-- `POPUP_AUTOHIDE_MS := 4000` — how long the slider popup stays before auto-hiding
-- `^!Up` / `^!Down` / `^!b` — hotkeys (`^`=Ctrl, `!`=Alt, `+`=Shift, `#`=Win)
-- `TRAY_ICON_INDEX := 110` — change the tray icon (any index from `imageres.dll`)
+- `STEP := 5` step per hotkey press
+- `OSD_DURATION_MS := 900` how long the centered OSD stays visible
+- `POPUP_AUTOHIDE_MS := 4000` how long the slider popup stays before auto-hiding
+- `^!Up` / `^!Down` / `^!b` hotkeys (`^`=Ctrl, `!`=Alt, `+`=Shift, `#`=Win)
+- `TRAY_ICON_INDEX := 110` change the tray icon (any index from `imageres.dll`)
 
-Then kill `AutoHotkey64.exe` and re-launch via the Startup folder shortcut (or log out and back in).
+To apply edits:
+
+1. `winget install AutoHotkey.AutoHotkey`
+2. Edit `~\Tools\asdbctl\brightness.ahk`
+3. Either point the Startup shortcut at `AutoHotkey64.exe brightness.ahk` instead of `brightness.exe`, or recompile with `Ahk2Exe.exe /in brightness.ahk /out brightness.exe /base AutoHotkey64.exe`
+4. Kill the running daemon (`brightness.exe` or `AutoHotkey64.exe`) and re-launch via the Startup shortcut
+
+## Build from source
+
+If you don't want the prebuilt binary, see [`.github/workflows/release.yml`](.github/workflows/release.yml) for the exact build steps (cargo build asdbctl + Ahk2Exe brightness.ahk). The pre-binary install flow is preserved in the git history at the tag `legacy-source-install`.
 
 ## Uninstall
 
