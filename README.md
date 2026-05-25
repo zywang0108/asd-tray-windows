@@ -18,6 +18,8 @@ If you bought a Studio Display in 2024+, Apple shipped it with a new firmware ex
 
 The fix is trivial: `juliuszint/asdbctl` upstream already added `0x1118` to its PID list, but no one shipped a Windows GUI build of it. This repo is that build, plus a tray daemon for native-feeling brightness control.
 
+If you landed here from searching any of: *Twinkle Tray Studio Display not detected*, *Monitorian Apple display brightness*, *asdbctl Windows GUI*, *Studio Display brightness Windows 11*, *Apple Studio Display brightness slider Windows*, *Studio Display 2024 firmware brightness fix*, *Apple HID brightness control Windows*, *adjust Apple monitor brightness from Windows PC*, *Pro Display XDR brightness Windows*, *USB PID 0x1118 brightness*, this is what you want.
+
 ## Install
 
 Run in PowerShell (no admin needed for daily use; you may get one UAC prompt for VS Build Tools if it's not already installed):
