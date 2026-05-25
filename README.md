@@ -102,8 +102,15 @@ One daemon process. asdbctl is invoked per action via `cmd /S /C` with a temp-fi
 
 ## Credits
 
-- [`juliuszint/asdbctl`](https://github.com/juliuszint/asdbctl) — the actual brightness engine. All the hard work is there.
+- [`juliuszint/asdbctl`](https://github.com/juliuszint/asdbctl) the actual brightness engine. All the hard work is there.
 - This repo adds: tray icon, slider popup, OSD, global hotkeys, install/uninstall automation.
+
+### Prior art
+
+Other Windows brightness tools that informed the design or that we tested against. None of their code is used in this repo, but they shaped what "good" looks like and why a wrapper around `asdbctl` was the right path:
+
+- [Twinkle Tray](https://github.com/xanderfrangos/twinkle-tray) and [Monitorian](https://github.com/emoacht/Monitorian) tray-resident brightness UX reference. Both rely on DDC/CI, which Apple's HID-based protocol does not speak.
+- [`sfjohnson/studio-brightness`](https://github.com/sfjohnson/studio-brightness), [`Chris-Poland/SDBC`](https://github.com/Chris-Poland/SDBC), [`LitteRabbit-37/Studio-Brightness-PlusPlus`](https://github.com/LitteRabbit-37/Studio-Brightness-PlusPlus) earlier Studio Display Windows tools. They fail on the 2024+ `0x1118` firmware (outdated PID whitelist, or LibUSB cannot claim the interface Apple's driver locks).
 
 ## License
 
