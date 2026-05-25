@@ -27,24 +27,40 @@ jobs:
         working-directory: asdbctl-src
         run: cargo build --release
 
-      - name: Download AHK v2 portable
+      - name: Install AHK v2 via winget
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri 'https://www.autohotkey.com/download/ahk-v2.zip' -OutFile ahk.zip
-          Expand-Archive ahk.zip -DestinationPath ahk -Force
+          winget install --id AutoHotkey.AutoHotkey --exact `
+            --accept-package-agreements --accept-source-agreements `
+            --silent --disable-interactivity --source winget
+          # exit code -1978335189 = "already installed", treat as success
+          if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) {
+            throw "winget install failed: exit $LASTEXITCODE"
+          }
+          $candidates = @(
+            "$env:LOCALAPPDATA\Programs\AutoHotkey\v2",
+            "$env:ProgramFiles\AutoHotkey\v2",
+            "${env:ProgramFiles(x86)}\AutoHotkey\v2"
+          )
+          $ahkDir = $null
+          foreach ($c in $candidates) {
+            if (Test-Path (Join-Path $c 'AutoHotkey64.exe')) { $ahkDir = $c; break }
+          }
+          if (-not $ahkDir) { throw "AHK v2 install path not found in any candidate" }
+          "AHK_DIR=$ahkDir" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "AHK v2 at: $ahkDir"
 
       - name: Compile brightness.ahk to brightness.exe
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path dist -Force | Out-Null
-          $base = (Resolve-Path './ahk/AutoHotkey64.exe').Path
-          $compiler = (Resolve-Path './ahk/Compiler/Ahk2Exe.exe').Path
+          $base = Join-Path $env:AHK_DIR 'AutoHotkey64.exe'
+          $compiler = Join-Path $env:AHK_DIR 'Compiler\Ahk2Exe.exe'
+          if (-not (Test-Path $compiler)) { throw "Ahk2Exe.exe not found at $compiler" }
           $src = (Resolve-Path './brightness.ahk').Path
           $out = Join-Path ((Resolve-Path './dist').Path) 'brightness.exe'
-          Start-Process -FilePath $compiler `
-            -ArgumentList @('/in', "`"$src`"", '/out', "`"$out`"", '/base', "`"$base`"") `
-            -Wait -NoNewWindow
-          if (-not (Test-Path $out)) { throw "Ahk2Exe failed to produce $out" }
+          & $compiler /in $src /out $out /base $base
+          if (-not (Test-Path $out)) { throw "Ahk2Exe did not produce $out" }
 
       - name: Stage release files
         shell: pwsh
