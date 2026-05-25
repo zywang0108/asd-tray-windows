@@ -50,17 +50,28 @@ jobs:
           "AHK_DIR=$ahkDir" | Out-File -FilePath $env:GITHUB_ENV -Append
           Write-Host "AHK v2 at: $ahkDir"
 
+      - name: Download Ahk2Exe (winget AHK install does not include the compiler)
+        shell: pwsh
+        run: |
+          $url = 'https://github.com/AutoHotkey/Ahk2Exe/releases/download/Ahk2Exe1.1.37.02a2/Ahk2Exe1.1.37.02a2.zip'
+          Invoke-WebRequest -Uri $url -OutFile ahk2exe.zip -UseBasicParsing
+          Expand-Archive -Path ahk2exe.zip -DestinationPath ahk2exe -Force
+          $exe = Get-ChildItem -Path ahk2exe -Filter 'Ahk2Exe.exe' -Recurse | Select-Object -First 1
+          if (-not $exe) { throw "Ahk2Exe.exe not found in zip" }
+          "AHK2EXE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "Ahk2Exe: $($exe.FullName)"
+
       - name: Compile brightness.ahk to brightness.exe
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path dist -Force | Out-Null
           $base = Join-Path $env:AHK_DIR 'AutoHotkey64.exe'
-          $compiler = Join-Path $env:AHK_DIR 'Compiler\Ahk2Exe.exe'
-          if (-not (Test-Path $compiler)) { throw "Ahk2Exe.exe not found at $compiler" }
+          if (-not (Test-Path $base)) { throw "AutoHotkey64.exe missing at $base" }
           $src = (Resolve-Path './brightness.ahk').Path
           $out = Join-Path ((Resolve-Path './dist').Path) 'brightness.exe'
-          & $compiler /in $src /out $out /base $base
+          & $env:AHK2EXE /in $src /out $out /base $base
           if (-not (Test-Path $out)) { throw "Ahk2Exe did not produce $out" }
+          Write-Host "Compiled: $out ($([math]::Round((Get-Item $out).Length/1KB)) KB)"
 
       - name: Stage release files
         shell: pwsh
