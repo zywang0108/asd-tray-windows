@@ -70,6 +70,12 @@ jobs:
           $src = (Resolve-Path './brightness.ahk').Path
           $out = Join-Path ((Resolve-Path './dist').Path) 'brightness.exe'
           & $env:AHK2EXE /in $src /out $out /base $base
+          # Ahk2Exe prints "Successfully compiled" before the file metadata is
+          # visible to other handles, so poll briefly.
+          for ($i = 0; $i -lt 25; $i++) {
+            if (Test-Path $out) { break }
+            Start-Sleep -Milliseconds 200
+          }
           if (-not (Test-Path $out)) { throw "Ahk2Exe did not produce $out" }
           Write-Host "Compiled: $out ($([math]::Round((Get-Item $out).Length/1KB)) KB)"
 
