@@ -123,4 +123,10 @@ Other Windows brightness tools that informed the design or that we tested agains
 
 ## License
 
-MIT. Same as `asdbctl`.
+MIT. Same as `asdbctl`. Upstream `asdbctl` LICENSE is bundled alongside our own in every release (`asdbctl-LICENSE.txt`).
+
+## Trademarks and disclaimer
+
+This project is **not affiliated with, endorsed by, or sponsored by Apple Inc.** "Apple", "Studio Display", and "Pro Display XDR" are trademarks of Apple Inc., used here nominatively to describe hardware compatibility. All other trademarks are the property of their respective owners.
+
+Software is provided "as is", without warranty of any kind (see [LICENSE](LICENSE)). Use at your own risk.
