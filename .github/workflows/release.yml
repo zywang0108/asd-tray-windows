@@ -86,6 +86,9 @@ jobs:
           Copy-Item brightness.ahk dist/
           Copy-Item README.md dist/
           Copy-Item LICENSE dist/
+          $asdLic = Get-ChildItem asdbctl-src -Filter 'LICENSE*' | Select-Object -First 1
+          if (-not $asdLic) { throw "asdbctl LICENSE not found in asdbctl-src/" }
+          Copy-Item $asdLic.FullName dist/asdbctl-LICENSE.txt
 
       - name: Create zip
         shell: pwsh

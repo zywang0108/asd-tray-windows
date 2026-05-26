@@ -44,9 +44,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Files]
 Source: "dist\asdbctl.exe";    DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\brightness.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\brightness.ahk"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\README.md";      DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\LICENSE";        DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\brightness.ahk";        DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\README.md";             DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\LICENSE";               DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\asdbctl-LICENSE.txt";   DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{userstartup}\ASD Brightness Tray"; Filename: "{app}\{#MyAppExe}"; WorkingDir: "{app}"
