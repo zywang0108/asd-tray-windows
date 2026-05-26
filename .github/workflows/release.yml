@@ -89,11 +89,11 @@ jobs:
           $asdLic = Get-ChildItem asdbctl-src -Filter 'LICENSE*' | Select-Object -First 1
           if (-not $asdLic) { throw "asdbctl LICENSE not found in asdbctl-src/" }
           Copy-Item $asdLic.FullName dist/asdbctl-LICENSE.txt
-          $ahkLic = Join-Path $env:AHK_DIR 'license.txt'
-          if (Test-Path $ahkLic) {
-            Copy-Item $ahkLic dist/AutoHotkey-LICENSE.txt
+          $ahkLic = Get-ChildItem $env:AHK_DIR -Filter 'license*' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($ahkLic) {
+            Copy-Item $ahkLic.FullName dist/AutoHotkey-LICENSE.txt
           } else {
-            Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/AutoHotkey/AutoHotkey/main/license.txt' -OutFile dist/AutoHotkey-LICENSE.txt
+            Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/AutoHotkey/AutoHotkey/alpha/license.txt' -OutFile dist/AutoHotkey-LICENSE.txt
           }
 
       - name: Create zip
