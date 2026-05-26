@@ -123,7 +123,13 @@ Other Windows brightness tools that informed the design or that we tested agains
 
 ## License
 
-MIT. Same as `asdbctl`. Upstream `asdbctl` LICENSE is bundled alongside our own in every release (`asdbctl-LICENSE.txt`).
+This repo ships three pieces of code under three licenses:
+
+- **`brightness.ahk` (this repo, source)**: MIT, see [LICENSE](LICENSE).
+- **`brightness.exe` (compiled)**: GPL-2.0. Ahk2Exe embeds the AutoHotkey v2 runtime into the produced executable, and AHK v2 is GPL-2.0, which makes the combined binary a GPL-2.0 derivative work. The runtime's source is at [AutoHotkey/AutoHotkey](https://github.com/AutoHotkey/AutoHotkey); we satisfy GPL §3a by shipping `brightness.ahk` (the part we wrote, MIT-licensed and freely redistributable) alongside every release. AHK v2's license text is bundled as `AutoHotkey-LICENSE.txt`.
+- **`asdbctl.exe`**: MIT, built from [`juliuszint/asdbctl`](https://github.com/juliuszint/asdbctl). Upstream license bundled as `asdbctl-LICENSE.txt`.
+
+If you only want MIT-licensed bits, use the `brightness.ahk` source directly with a separately-installed AHK v2 runtime (e.g. `winget install AutoHotkey.AutoHotkey`) instead of `brightness.exe`.
 
 ## Trademarks and disclaimer
 
