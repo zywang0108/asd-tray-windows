@@ -84,9 +84,11 @@ ShowOSD(text, isError := false) {
     global osdGui, osdText
     osdText.Opt(isError ? "cFF6060" : "cFFFFFF")
     osdText.Text := text
-    x := (A_ScreenWidth - 300) // 2
+    osdGui.Show("AutoSize Hide NoActivate")
+    WinGetPos(, , &w, &h, osdGui.Hwnd)
+    x := (A_ScreenWidth - w) // 2
     y := A_ScreenHeight // 6
-    osdGui.Show(Format("w300 h90 NoActivate x{1} y{2}", x, y))
+    osdGui.Show(Format("NoActivate x{1} y{2}", x, y))
     SetTimer(HideOsd, -OSD_DURATION_MS)
 }
 
