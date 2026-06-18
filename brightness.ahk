@@ -19,6 +19,7 @@ ResolveAsdbctl() {
 
 ASDBCTL := ResolveAsdbctl()
 STEP := 5
+VOLUME_STEP := 1
 OSD_DURATION_MS := 900
 POPUP_AUTOHIDE_MS := 4000
 TRAY_ICON := "C:\Windows\System32\imageres.dll"
@@ -245,6 +246,8 @@ AboutClick(*) {
 ; --- Global hotkeys ---
 ^!Up::HotkeyBump(STEP)
 ^!Down::HotkeyBump(-STEP)
+^!Right::VolumeBump(VOLUME_STEP)
+^!Left::VolumeBump(-VOLUME_STEP)
 ^!b::ShowSlider()
 
 HotkeyBump(delta) {
@@ -259,6 +262,23 @@ HotkeyBump(delta) {
     global popupVisible, sliderCtrl
     if popupVisible
         sliderCtrl.Value := newV
+}
+
+VolumeBump(delta) {
+    try {
+        cur := SoundGetVolume()
+    } catch {
+        ShowOSD("Audio device not available", true)
+        return
+    }
+    newV := Max(0, Min(100, Round(cur + delta)))
+    try {
+        SoundSetVolume(newV)
+    } catch {
+        ShowOSD("Audio device not available", true)
+        return
+    }
+    ShowOSD(Format("Volume {1}%", newV))
 }
 
 ; --- Wheel over slider popup ---

@@ -53,6 +53,8 @@ After install, look for the brightness icon in the system tray (bottom-right cor
 | Open slider popup | Single-click the tray icon, or hotkey `Ctrl+Alt+B` |
 | Brightness up 5% | `Ctrl+Alt+↑` (OSD shows new value) |
 | Brightness down 5% | `Ctrl+Alt+↓` |
+| System volume up 1% | `Ctrl+Alt+Right` (default Windows output device) |
+| System volume down 1% | `Ctrl+Alt+Left` |
 | Wheel adjust | Hover the popup → mouse wheel ±5% |
 | Quick presets | Right-click tray icon → pick 0/25/50/75/100 |
 | Auto-close popup | Click elsewhere, or wait ~4s |
@@ -65,9 +67,10 @@ Popup is anchored above the taskbar in the bottom-right, like the Windows audio 
 The release zip includes the source `brightness.ahk` alongside the compiled `brightness.exe` (which embeds the AHK v2 runtime). Constants worth tweaking in the .ahk file:
 
 - `STEP := 5` step per hotkey press
+- `VOLUME_STEP := 1` step per volume hotkey press
 - `OSD_DURATION_MS := 900` how long the centered OSD stays visible
 - `POPUP_AUTOHIDE_MS := 4000` how long the slider popup stays before auto-hiding
-- `^!Up` / `^!Down` / `^!b` hotkeys (`^`=Ctrl, `!`=Alt, `+`=Shift, `#`=Win)
+- `^!Up` / `^!Down` brightness hotkeys, `^!Right` / `^!Left` volume hotkeys, `^!b` popup hotkey (`^`=Ctrl, `!`=Alt, `+`=Shift, `#`=Win)
 - `TRAY_ICON_INDEX := 110` change the tray icon (any index from `imageres.dll`)
 
 To apply edits:

@@ -62,5 +62,6 @@ Write-Host "Try it:" -ForegroundColor Green
 Write-Host "  Single-click the tray icon       - slider popup"
 Write-Host "  Right-click the tray icon        - quick presets 0/25/50/75/100"
 Write-Host "  Ctrl+Alt+Up / Ctrl+Alt+Down      - brightness +-5% with OSD"
+Write-Host "  Ctrl+Alt+Left / Ctrl+Alt+Right   - system volume -/+1% with OSD"
 Write-Host "  Ctrl+Alt+B                       - open slider popup"
 Write-Host "  asdbctl get / asdbctl set 70     - CLI (open a new shell first)"
