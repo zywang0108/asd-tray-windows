@@ -17,10 +17,10 @@ function Assert-Matches {
     }
 }
 
-Assert-Matches $ahk '(?m)^VOLUME_STEP := 1$' 'brightness.ahk should define VOLUME_STEP as 1.'
-Assert-Matches $ahk '(?m)^\^!Right::VolumeBump\(VOLUME_STEP\)$' 'Ctrl+Alt+Right should raise system volume.'
-Assert-Matches $ahk '(?m)^\^!Left::VolumeBump\(-VOLUME_STEP\)$' 'Ctrl+Alt+Left should lower system volume.'
-Assert-Matches $ahk '(?m)^VolumeBump\(delta\) \{$' 'brightness.ahk should define VolumeBump(delta).'
+Assert-Matches $ahk '(?m)^VOLUME_STEP := 1\r?$' 'brightness.ahk should define VOLUME_STEP as 1.'
+Assert-Matches $ahk '(?m)^\^!Right::VolumeBump\(VOLUME_STEP\)\r?$' 'Ctrl+Alt+Right should raise system volume.'
+Assert-Matches $ahk '(?m)^\^!Left::VolumeBump\(-VOLUME_STEP\)\r?$' 'Ctrl+Alt+Left should lower system volume.'
+Assert-Matches $ahk '(?m)^VolumeBump\(delta\) \{\r?$' 'brightness.ahk should define VolumeBump(delta).'
 Assert-Matches $ahk 'SoundGetVolume\(' 'VolumeBump should read current Windows volume.'
 Assert-Matches $ahk 'SoundSetVolume\(newV\)' 'VolumeBump should set the clamped Windows volume.'
 
