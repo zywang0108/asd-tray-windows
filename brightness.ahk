@@ -30,20 +30,23 @@ popupVisible := false
 sliderPendingValue := -1
 sliderInFlight := false
 sliderInFlightPid := 0
+sliderInFlightStatusFile := ""
 
 ; --- Backend ---
 RunSilent(cmd) {
-    RunWait(A_ComSpec ' /S /C "' cmd '"', , "Hide")
+    return RunWait(A_ComSpec ' /D /S /C "' cmd '"', , "Hide")
 }
 
 RunSilentAsync(cmd) {
-    Run(A_ComSpec ' /S /C "' cmd '"', , "Hide", &pid)
-    return pid
+    statusFile := A_Temp "\asdctl_status_" A_TickCount "_" Random(1000, 9999) ".txt"
+    wrapped := cmd ' & > "' statusFile '" echo !errorlevel!'
+    Run(A_ComSpec ' /D /V:ON /S /C "' wrapped '"', , "Hide", &pid)
+    return {Pid: pid, StatusFile: statusFile}
 }
 
 RunSilentCapture(cmd) {
     tmp := A_Temp "\asdctl_" A_TickCount "_" Random(1000, 9999) ".txt"
-    RunWait(A_ComSpec ' /S /C "' cmd ' > ' tmp ' 2>&1"', , "Hide")
+    RunWait(A_ComSpec ' /D /S /C "' cmd ' > "' tmp '" 2>&1"', , "Hide")
     out := FileExist(tmp) ? FileRead(tmp) : ""
     try FileDelete(tmp)
     return out
@@ -58,8 +61,7 @@ GetBrightness() {
 SetBrightness(v) {
     global ASDBCTL
     v := Max(0, Min(100, Integer(v)))
-    RunSilent(Format('"{1}" set {2}', ASDBCTL, v))
-    return v
+    return RunSilent(Format('"{1}" set {2}', ASDBCTL, v)) = 0 ? v : -1
 }
 
 SetBrightnessAsync(v) {
@@ -112,7 +114,7 @@ OnSliderChange(ctrl, info) {
 }
 
 PumpSlider() {
-    global sliderInFlight, sliderInFlightPid, sliderPendingValue
+    global sliderInFlight, sliderInFlightPid, sliderInFlightStatusFile, sliderPendingValue
     if sliderInFlight
         return
     if (sliderPendingValue < 0)
@@ -120,16 +122,26 @@ PumpSlider() {
     v := sliderPendingValue
     sliderPendingValue := -1
     sliderInFlight := true
-    sliderInFlightPid := SetBrightnessAsync(v)
+    job := SetBrightnessAsync(v)
+    sliderInFlightPid := job.Pid
+    sliderInFlightStatusFile := job.StatusFile
     SetTimer(SliderWatchTick, 30)
 }
 
 SliderWatchTick() {
-    global sliderInFlight, sliderInFlightPid
+    global sliderInFlight, sliderInFlightPid, sliderInFlightStatusFile
     if !ProcessExist(sliderInFlightPid) {
         SetTimer(SliderWatchTick, 0)
+        exitCode := -1
+        if FileExist(sliderInFlightStatusFile) {
+            try exitCode := Integer(Trim(FileRead(sliderInFlightStatusFile)))
+            try FileDelete(sliderInFlightStatusFile)
+        }
         sliderInFlight := false
         sliderInFlightPid := 0
+        sliderInFlightStatusFile := ""
+        if (exitCode != 0)
+            ShowOSD("Failed to set brightness", true)
         PumpSlider()
     }
 }
@@ -228,7 +240,10 @@ A_TrayMenu.Default := "Open slider"
 A_TrayMenu.ClickCount := 1
 
 QuickSet(v) {
-    SetBrightness(v)
+    if (SetBrightness(v) < 0) {
+        ShowOSD("Failed to set brightness", true)
+        return
+    }
     ShowOSD(Format("{1}%", v))
 }
 
@@ -257,7 +272,10 @@ HotkeyBump(delta) {
         return
     }
     newV := Max(0, Min(100, cur + delta))
-    SetBrightness(newV)
+    if (SetBrightness(newV) < 0) {
+        ShowOSD("Failed to set brightness", true)
+        return
+    }
     ShowOSD(Format("{1}%", newV))
     global popupVisible, sliderCtrl
     if popupVisible

@@ -3,9 +3,34 @@
 
 $ErrorActionPreference = 'Stop'
 $ToolsDir = "$env:USERPROFILE\Tools\asdbctl"
+$LegacyBin = "$ToolsDir\target\release"
 $Repo     = 'zywang0108/asd-tray-windows'
 
 function Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
+
+function Test-PathEntryEqual($Left, $Right) {
+    if ([string]::IsNullOrWhiteSpace($Left) -or [string]::IsNullOrWhiteSpace($Right)) {
+        return $false
+    }
+    $trimChars = [char[]]@('\', '/')
+    $normalizedLeft = [Environment]::ExpandEnvironmentVariables($Left.Trim()).TrimEnd($trimChars)
+    $normalizedRight = [Environment]::ExpandEnvironmentVariables($Right.Trim()).TrimEnd($trimChars)
+    return [string]::Equals($normalizedLeft, $normalizedRight, [StringComparison]::OrdinalIgnoreCase)
+}
+
+function Stop-AsdTrayProcesses($InstallDir) {
+    $exePath = [IO.Path]::GetFullPath((Join-Path $InstallDir 'brightness.exe'))
+    $scriptPath = [IO.Path]::GetFullPath((Join-Path $InstallDir 'brightness.ahk'))
+    Get-CimInstance Win32_Process -Filter "Name = 'brightness.exe' OR Name = 'AutoHotkey64.exe'" `
+        -ErrorAction SilentlyContinue |
+        Where-Object {
+            ($_.Name -ieq 'brightness.exe' -and $_.ExecutablePath -and
+                [string]::Equals([IO.Path]::GetFullPath($_.ExecutablePath), $exePath, [StringComparison]::OrdinalIgnoreCase)) -or
+            ($_.Name -ieq 'AutoHotkey64.exe' -and $_.CommandLine -and
+                $_.CommandLine.IndexOf($scriptPath, [StringComparison]::OrdinalIgnoreCase) -ge 0)
+        } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+}
 
 Step 'Look up latest release'
 $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" `
@@ -15,8 +40,7 @@ if (-not $asset) { throw "No zip asset found in release $($rel.tag_name)" }
 Write-Host "  $($rel.tag_name) -> $($asset.name) ($([math]::Round($asset.size/1KB)) KB)"
 
 Step 'Stop running daemon (if any)'
-Get-Process -Name 'AutoHotkey64','brightness' -ErrorAction SilentlyContinue |
-    Stop-Process -Force -ErrorAction SilentlyContinue
+Stop-AsdTrayProcesses $ToolsDir
 
 Step "Download and extract to $ToolsDir"
 New-Item -ItemType Directory -Path $ToolsDir -Force | Out-Null
@@ -27,8 +51,14 @@ Remove-Item $zip -Force
 
 Step 'Add asdbctl to User PATH'
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-if ($userPath -notlike "*$ToolsDir*") {
-    [Environment]::SetEnvironmentVariable('Path', "$userPath;$ToolsDir", 'User')
+$pathEntries = @($userPath -split ';' | Where-Object { $_ })
+$pathEntries = @($pathEntries | Where-Object { -not (Test-PathEntryEqual $_ $LegacyBin) })
+if (-not ($pathEntries | Where-Object { Test-PathEntryEqual $_ $ToolsDir })) {
+    $pathEntries += $ToolsDir
+}
+$newUserPath = $pathEntries -join ';'
+if ($newUserPath -ne $userPath) {
+    [Environment]::SetEnvironmentVariable('Path', $newUserPath, 'User')
 }
 
 Step 'Register tray daemon for autostart'

@@ -32,6 +32,9 @@ Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 ChangesEnvironment=yes
+CloseApplications=yes
+CloseApplicationsFilter=brightness.exe
+RestartApplications=no
 Uninstallable=yes
 UninstallDisplayIcon={app}\{#MyAppExe}
 UninstallDisplayName={#MyAppName}
@@ -55,10 +58,6 @@ Name: "{userstartup}\ASD Brightness Tray"; Filename: "{app}\{#MyAppExe}"; Workin
 
 [Run]
 Filename: "{app}\{#MyAppExe}"; Description: "Launch tray now"; Flags: nowait postinstall skipifsilent
-
-[UninstallRun]
-Filename: "{cmd}"; Parameters: "/c taskkill /F /IM brightness.exe /T";    Flags: runhidden; RunOnceId: "killbrightness"
-Filename: "{cmd}"; Parameters: "/c taskkill /F /IM AutoHotkey64.exe /T";  Flags: runhidden; RunOnceId: "killahk"
 
 [Code]
 const

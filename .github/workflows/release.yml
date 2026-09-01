@@ -14,6 +14,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Run repository checks
+        shell: pwsh
+        run: |
+          Get-ChildItem tests -Filter '*.ps1' | ForEach-Object {
+            & $_.FullName
+          }
+
       - name: Checkout asdbctl source
         uses: actions/checkout@v4
         with:
